@@ -47,3 +47,39 @@ class BaseAPI:
             return {}
 
         return response.json()
+
+    def _handle_binary_response(self, response: httpx.Response) -> bytes:
+        """Handle binary API response (e.g. file downloads)."""
+        if response.status_code >= 400:
+            try:
+                error_data = response.json()
+                message = error_data.get("message", response.text)
+            except Exception:
+                message = response.text
+            raise APIError(message, status_code=response.status_code)
+
+        return response.content
+
+    def _get(self, path: str, params: dict | None = None) -> dict:
+        """Perform an authenticated GET request."""
+        url = f"{self.base_url}{path}"
+        response = self.client.get(url, headers=self.headers, params=params)
+        return self._handle_response(response)
+
+    def _post(self, path: str, json: dict | list | None = None) -> dict:
+        """Perform an authenticated POST request."""
+        url = f"{self.base_url}{path}"
+        response = self.client.post(url, headers=self.headers, json=json)
+        return self._handle_response(response)
+
+    def _patch(self, path: str, json: dict | None = None) -> dict:
+        """Perform an authenticated PATCH request."""
+        url = f"{self.base_url}{path}"
+        response = self.client.patch(url, headers=self.headers, json=json)
+        return self._handle_response(response)
+
+    def _delete(self, path: str, params: dict | None = None) -> dict:
+        """Perform an authenticated DELETE request."""
+        url = f"{self.base_url}{path}"
+        response = self.client.delete(url, headers=self.headers, params=params)
+        return self._handle_response(response)

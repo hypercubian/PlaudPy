@@ -1,18 +1,12 @@
 """Authentication API."""
 
-import httpx
-
-from ..config import PlaudConfig
 from ..exceptions import AuthenticationError
-from ..models import TokenResponse
+from ..models.auth import TokenResponse, AccessTokenInfo, SSOProvider
+from .base import BaseAPI
 
 
-class AuthAPI:
+class AuthAPI(BaseAPI):
     """Handle authentication with Plaud.ai."""
-
-    def __init__(self, config: PlaudConfig, http_client: httpx.Client):
-        self.config = config
-        self.client = http_client
 
     def login(self, username: str, password: str) -> TokenResponse:
         """Authenticate and get access token.
@@ -27,7 +21,9 @@ class AuthAPI:
         Raises:
             AuthenticationError: If authentication fails.
         """
-        url = f"{self.config.base_url}/auth/access-token"
+        import httpx
+
+        url = f"{self.base_url}/auth/access-token"
 
         # Auth endpoint expects multipart form data
         data = {
@@ -49,3 +45,53 @@ class AuthAPI:
 
         except httpx.RequestError as e:
             raise AuthenticationError(f"Request failed: {e}")
+
+    def list_tokens(self) -> list[AccessTokenInfo]:
+        """List all active access tokens."""
+        data = self._get("/auth/access-token/list")
+        items = data if isinstance(data, list) else data.get("data", [])
+        return [AccessTokenInfo.model_validate(item) for item in items]
+
+    def logout(self) -> dict:
+        """Logout and invalidate current access token."""
+        return self._post("/auth/logout")
+
+    def remove_token(self, token_id: str) -> dict:
+        """Remove a specific access token.
+
+        Args:
+            token_id: ID of the token to remove.
+        """
+        return self._delete(f"/auth/access-token/{token_id}")
+
+    def verify_magic_link(self, token: str) -> dict:
+        """Verify a magic link login token.
+
+        Args:
+            token: The magic link token.
+        """
+        return self._post("/auth/magic-link/verify", json={"token": token})
+
+    def list_sso_providers(self) -> list[SSOProvider]:
+        """List available SSO providers."""
+        data = self._get("/auth/sso/list")
+        items = data if isinstance(data, list) else data.get("data", [])
+        return [SSOProvider.model_validate(item) for item in items]
+
+    def bind_sso(self, provider: str, **kwargs) -> dict:
+        """Bind an SSO provider to the account.
+
+        Args:
+            provider: SSO provider identifier.
+            **kwargs: Additional provider-specific parameters.
+        """
+        payload = {"provider": provider, **kwargs}
+        return self._post("/auth/sso/bindAccount", json=payload)
+
+    def unbind_sso(self, provider: str) -> dict:
+        """Unbind an SSO provider from the account.
+
+        Args:
+            provider: SSO provider identifier.
+        """
+        return self._post("/auth/sso/unBindAccount", json={"provider": provider})

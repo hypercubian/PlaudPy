@@ -1,5 +1,6 @@
 """Unit tests for PlaudClient with mocked HTTP responses."""
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -107,6 +108,32 @@ class TestPlaudClientMocked:
         recordings = client_with_mocks.get_recordings()
 
         assert recordings[0].summary == "This is a summary of the meeting."
+
+    def test_token_distributed_to_all_apis(self, client_with_mocks):
+        """All sub-APIs should receive the access token."""
+        for api in client_with_mocks._apis:
+            assert api._access_token == "test-token"
+
+    def test_sub_api_properties(self, client_with_mocks):
+        """Sub-API properties should return correct instances."""
+        from plaudpy.api import (
+            AIAPI, AuthAPI, ConfigAPI, DevicesAPI, FilesAPI,
+            MembershipAPI, MiscAPI, SearchAPI, SpeakersAPI,
+            TagsAPI, TemplatesAPI, UsersAPI,
+        )
+
+        assert isinstance(client_with_mocks.auth, AuthAPI)
+        assert isinstance(client_with_mocks.files, FilesAPI)
+        assert isinstance(client_with_mocks.ai, AIAPI)
+        assert isinstance(client_with_mocks.users, UsersAPI)
+        assert isinstance(client_with_mocks.tags, TagsAPI)
+        assert isinstance(client_with_mocks.speakers, SpeakersAPI)
+        assert isinstance(client_with_mocks.search, SearchAPI)
+        assert isinstance(client_with_mocks.templates, TemplatesAPI)
+        assert isinstance(client_with_mocks.membership, MembershipAPI)
+        assert isinstance(client_with_mocks.app_config, ConfigAPI)
+        assert isinstance(client_with_mocks.devices, DevicesAPI)
+        assert isinstance(client_with_mocks.misc, MiscAPI)
 
 
 class TestAuthenticationErrors:

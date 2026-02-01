@@ -1,6 +1,7 @@
 """File and recording models."""
 
 from datetime import datetime, timezone
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -125,3 +126,23 @@ class Recording(BaseModel):
             ])
 
         return "\n".join(lines)
+
+
+class FileTag(BaseModel):
+    """A file tag."""
+
+    model_config = {"extra": "allow"}
+
+    id: str | None = None
+    name: str | None = None
+    color: str | None = None
+
+
+class UploadPresignedUrl(BaseModel):
+    """Pre-signed URL for file upload."""
+
+    model_config = {"extra": "allow"}
+
+    url: str | None = None
+    file_id: str | None = None
+    fields: dict | None = None
